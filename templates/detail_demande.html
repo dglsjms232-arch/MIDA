@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block contenu %}
+<p><a href="{% url 'liste_demandes' %}">&larr; Retour à la liste</a></p>
+<h1>Demande n°{{ demande.id }} : {{ demande.etudiant }}</h1>
+<p>Filière : {{ demande.filiere }} | Dépôt : {{ demande.get_mode_depot_display }} | Statut : <strong>{{ demande.get_statut_display }}</strong></p>
+
+<h2>Pièces déposées</h2>
+<ul>
+  {% for p in pieces %}<li>{{ p.type_piece }} : <a href="{% url 'piece_fichier' p.id %}" target="_blank">ouvrir</a></li>
+  {% empty %}<li>Aucune pièce.</li>{% endfor %}
+</ul>
+{% if manquantes %}
+<p><strong>Pièces obligatoires manquantes :</strong>
+{% for t in manquantes %}{{ t.libelle }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+{% endif %}
+
+<h2>Décisions</h2>
+<table>
+  <tr><th>Date</th><th>Décision</th><th>Auteur</th><th>Motif</th></tr>
+  {% for d in decisions %}
+  <tr><td>{{ d.date|date:"d/m/Y H:i" }}</td><td>{{ d.get_resultat_display }}</td><td>{{ d.auteur.username }}</td><td>{{ d.motif }}</td></tr>
+  {% empty %}<tr><td colspan="4">Aucune décision.</td></tr>{% endfor %}
+</table>
+{% if peut_decider %}
+<form method="post" action="{% url 'decider' demande.id %}">{% csrf_token %}
+  {{ form_decision.as_p }}<button>Enregistrer la décision</button>
+</form>
+{% endif %}
+
+<h2>Communication du résultat</h2>
+<table>
+  <tr><th>Date</th><th>Canal</th><th>Auteur</th><th>Résumé</th></tr>
+  {% for c in communications %}
+  <tr><td>{{ c.date|date:"d/m/Y H:i" }}</td><td>{{ c.get_canal_display }}</td><td>{{ c.auteur.username }}</td><td>{{ c.resume }}</td></tr>
+  {% empty %}<tr><td colspan="4">Aucune communication.</td></tr>{% endfor %}
+</table>
+{% if peut_decider %}
+<form method="post" action="{% url 'enregistrer_communication' demande.id %}">{% csrf_token %}
+  {{ form_comm.as_p }}<button>Enregistrer la communication</button>
+</form>
+{% endif %}
+
+<h2>Historique</h2>
+<table>
+  <tr><th>Date</th><th>Action</th><th>Auteur</th><th>Motif</th></tr>
+  {% for h in historique %}
+  <tr><td>{{ h.date|date:"d/m/Y H:i" }}</td><td>{{ h.action }}</td><td>{{ h.auteur.username }}</td><td>{{ h.motif }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %} 

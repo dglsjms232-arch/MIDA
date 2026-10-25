@@ -4,5 +4,6 @@
 <ul>
   <li><a href="{% url 'nouvelle_demande' %}">Déposer une demande d'admission</a></li>
   <li><a href="{% url 'mes_demandes' %}">Suivre mes demandes</a></li>
+  {% if est_agent %}<li><a href="{% url 'liste_demandes' %}">Gérer les dossiers de demande</a></li>{% endif %}
 </ul>
 {% endblock %}

@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 
 from academique.models import Filiere
 
-from .models import TypePiece
+from .models import Communication, DecisionAdmission, TypePiece
 
 
 def valider_fichier(f):
@@ -30,3 +30,21 @@ class DemandeForm(forms.Form):
             self.fields[f"piece_{tp.id}"] = forms.FileField(
                 required=False, label=tp.libelle + suffixe, validators=[valider_fichier]
             )
+
+
+class DecisionForm(forms.Form):
+    resultat = forms.ChoiceField(choices=DecisionAdmission.Resultat.choices, label="Décision")
+    motif = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)
+
+    def clean(self):
+        d = super().clean()
+        if d.get("resultat") == "refuse" and not (d.get("motif") or "").strip():
+            self.add_error("motif", "Un motif est obligatoire pour un refus.")
+        return d
+
+
+class CommunicationForm(forms.ModelForm):
+    class Meta:
+        model = Communication
+        fields = ["canal", "resume"]
+        labels = {"canal": "Canal", "resume": "Résumé du message"}
