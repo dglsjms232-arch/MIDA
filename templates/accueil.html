@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Bienvenue, {{ user.username }}</h1>
+<ul>
+  <li><a href="{% url 'nouvelle_demande' %}">Déposer une demande d'admission</a></li>
+  <li><a href="{% url 'mes_demandes' %}">Suivre mes demandes</a></li>
+</ul>
+{% endblock %}

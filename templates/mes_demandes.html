@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Mes demandes</h1>
+{% if demandes %}
+<table>
+  <tr><th>N°</th><th>Filière</th><th>Date</th><th>Statut</th></tr>
+  {% for d in demandes %}
+  <tr><td>{{ d.id }}</td><td>{{ d.filiere }}</td><td>{{ d.date_creation|date:"d/m/Y" }}</td><td>{{ d.get_statut_display }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Aucune demande pour le moment.</p>
+{% endif %}
+<p><a href="{% url 'nouvelle_demande' %}">Nouvelle demande</a></p>
+{% endblock %}
