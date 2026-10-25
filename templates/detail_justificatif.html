@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block contenu %}
+<p><a href="{% url 'liste_controle' %}">&larr; Retour à la liste</a></p>
+<h1>Justificatif n°{{ j.id }} : {{ j.etudiant }}</h1>
+<p>Objet : {{ j.get_objet_display }} | Montant déclaré : {{ j.montant_declare }} | Référence : {{ j.reference_bancaire }}</p>
+<p>Déposé le {{ j.date_depot|date:"d/m/Y H:i" }} | Statut : <strong>{{ j.get_statut_display }}</strong></p>
+<p><a href="{% url 'justificatif_fichier' j.id %}" target="_blank">Ouvrir le reçu</a></p>
+{% if j.motif_refus %}<p>Motif de refus : {{ j.motif_refus }}</p>{% endif %}
+{% if j.verifie_par %}<p>Contrôlé par {{ j.verifie_par.username }} le {{ j.date_verification|date:"d/m/Y H:i" }}</p>{% endif %}
+
+{% if peut_controler %}
+<h2>Contrôle</h2>
+<form method="post" action="{% url 'controler' j.id %}">{% csrf_token %}
+  {{ form.as_p }}<button>Enregistrer la décision</button>
+</form>
+{% endif %}
+
+<h2>Historique</h2>
+<table>
+  <tr><th>Date</th><th>Action</th><th>Auteur</th><th>Motif</th></tr>
+  {% for h in historique %}
+  <tr><td>{{ h.date|date:"d/m/Y H:i" }}</td><td>{{ h.action }}</td><td>{{ h.auteur.username }}</td><td>{{ h.motif }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

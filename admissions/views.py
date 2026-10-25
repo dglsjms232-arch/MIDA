@@ -28,8 +28,9 @@ def pieces_manquantes(demande):
 def accueil(request):
     return render(request, "accueil.html", {
         "est_agent": a_role(request.user, *ROLES_CONSULTATION),
+        "est_paiements": a_role(request.user, "Agent paiements", "Scolarité", "Administrateur"),
+        "est_scolarite": a_role(request.user, "Scolarité", "Administrateur"),
     })
-
 
 @login_required
 def nouvelle_demande(request):

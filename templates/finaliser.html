@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block contenu %}
+<p><a href="{% url 'a_finaliser' %}">&larr; Retour à la liste</a></p>
+<h1>Finaliser l'inscription : {{ demande.etudiant }}</h1>
+<p>Filière : {{ demande.filiere }} | Année : {{ demande.annee }}</p>
+<p>Justificatif de première tranche : <strong>{% if paiement_ok %}accepté{% else %}non accepté{% endif %}</strong></p>
+{% if deja %}
+<p>Inscription déjà finalisée : <a href="{% url 'fiche_inscription' deja.id %}">voir la fiche</a></p>
+{% elif not paiement_ok %}
+<p>La finalisation est impossible tant que le justificatif n'est pas accepté par l'agent habilité.</p>
+{% else %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<button>Finaliser l'inscription</button></form>
+{% endif %}
+{% endblock %}

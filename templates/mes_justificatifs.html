@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Paiement et inscription</h1>
+
+<h2>Mes justificatifs</h2>
+<table>
+  <tr><th>N°</th><th>Objet</th><th>Montant</th><th>Référence</th><th>Date</th><th>Statut</th><th>Motif de refus</th></tr>
+  {% for j in justificatifs %}
+  <tr>
+    <td>{{ j.id }}</td><td>{{ j.get_objet_display }}</td><td>{{ j.montant_declare }}</td>
+    <td>{{ j.reference_bancaire }}</td><td>{{ j.date_depot|date:"d/m/Y" }}</td>
+    <td>{{ j.get_statut_display }}</td><td>{{ j.motif_refus }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="7">Aucun justificatif.</td></tr>{% endfor %}
+</table>
+
+{% if peut_deposer %}
+<h2>Déposer le justificatif de première tranche</h2>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button>Envoyer</button></form>
+{% elif not admise %}
+<p>Le dépôt du justificatif est ouvert une fois votre admission prononcée.</p>
+{% elif bloque %}
+<p>Un justificatif est en cours de contrôle ou déjà accepté.</p>
+{% endif %}
+
+<h2>Mes inscriptions finalisées</h2>
+<ul>
+  {% for i in inscriptions %}
+  <li>{{ i.annee }} : {{ i.niveau }} - <a href="{% url 'fiche_inscription' i.id %}">voir la fiche</a></li>
+  {% empty %}<li>Aucune inscription finalisée.</li>{% endfor %}
+</ul>
+{% endblock %}

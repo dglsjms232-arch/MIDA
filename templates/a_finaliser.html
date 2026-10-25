@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Inscriptions à finaliser</h1>
+<table>
+  <tr><th>Demande</th><th>Candidat</th><th>Filière</th><th>Première tranche</th><th>Inscription</th></tr>
+  {% for l in lignes %}
+  <tr>
+    <td>{{ l.demande.id }}</td><td>{{ l.demande.etudiant }}</td><td>{{ l.demande.filiere }}</td>
+    <td>{% if l.paiement_ok %}Acceptée{% else %}Non acceptée{% endif %}</td>
+    <td>
+      {% if l.inscription %}<a href="{% url 'fiche_inscription' l.inscription.id %}">Finalisée : voir la fiche</a>
+      {% else %}<a href="{% url 'finaliser' l.demande.id %}">Finaliser</a>{% endif %}
+    </td>
+  </tr>
+  {% empty %}<tr><td colspan="5">Aucun candidat admis.</td></tr>{% endfor %}
+</table>
+{% endblock %}

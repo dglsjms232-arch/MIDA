@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fiche d'inscription n°{{ ins.id }}</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:700px;margin:2rem auto;padding:0 1rem}
+h1{text-align:center;border-bottom:2px solid #000;padding-bottom:.5rem}
+table{border-collapse:collapse;width:100%;margin-top:1rem}
+td{border:1px solid #999;padding:.5rem}
+td:first-child{width:35%;font-weight:bold;background:#f3f3f3}
+.note{font-size:.8rem;color:#555;margin-top:2rem}
+@media print{button,a{display:none}}
+</style>
+</head>
+<body>
+<h1>UCAO-UUT : Fiche d'inscription</h1>
+<table>
+  <tr><td>Matricule</td><td>{{ ins.etudiant.matricule }}</td></tr>
+  <tr><td>Nom et prénom</td><td>{{ ins.etudiant.nom }} {{ ins.etudiant.prenom }}</td></tr>
+  <tr><td>Date de naissance</td><td>{{ ins.etudiant.date_naissance|date:"d/m/Y" }}</td></tr>
+  <tr><td>Année académique</td><td>{{ ins.annee }}</td></tr>
+  <tr><td>Filière et niveau</td><td>{{ ins.niveau }}</td></tr>
+  <tr><td>Type d'inscription</td><td>{{ ins.get_type_display }}</td></tr>
+  <tr><td>Première tranche</td><td>{% if justificatif %}Justificatif accepté (réf. {{ justificatif.reference_bancaire }}){% else %}Non renseignée{% endif %}</td></tr>
+  <tr><td>Statut</td><td>{{ ins.get_statut_display }}</td></tr>
+  <tr><td>Finalisée par</td><td>{{ ins.finalisee_par.username }} le {{ ins.date_finalisation|date:"d/m/Y H:i" }}</td></tr>
+</table>
+<p class="note">Document de démonstration : données fictives.</p>
+<button onclick="window.print()">Imprimer ou enregistrer en PDF</button>
+<p><a href="{% url 'accueil' %}">Retour à l'accueil</a></p>
+</body>
+</html>
