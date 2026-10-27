@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block contenu %}
+<p><a href="{% url 'liste_releves' %}">&larr; Retour aux relevés</a></p>
+<h1>Réinscription : {{ ins.etudiant }}</h1>
+<p>Matricule : {{ ins.etudiant.matricule }} | Année : {{ ins.annee }} | Niveau : {{ ins.niveau }} (hypothèse provisoire : niveau suivant) | Statut : <strong>{{ ins.get_statut_display }}</strong></p>
+
+{% if releve %}
+<p>Relevé examiné : {{ releve.annee }}, {{ releve.credits_obtenus }} / 60 crédits.</p>
+<div class="msg">{{ message_situation }}</div>
+{% endif %}
+
+<h2>Matières non validées</h2>
+<table>
+  <tr><th>Matière</th><th>Statut pédagogique</th></tr>
+  {% for d in dettes %}
+  <tr><td>{{ d.matiere }}</td><td>{{ d.get_statut_display }}</td></tr>
+  {% empty %}<tr><td colspan="2">Aucune matière non validée.</td></tr>{% endfor %}
+</table>
+
+<h2>Décision pédagogique</h2>
+{% if decision %}
+<p>Décision de {{ decision.responsable.username }} le {{ decision.date|date:"d/m/Y H:i" }}.</p>
+<p>Justification : {{ decision.motif }}</p>
+<h3>Matières retenues pour la reprise</h3>
+<ul>
+  {% for d in retenues %}<li>{{ d.matiere }}</li>{% empty %}<li>Aucune matière retenue.</li>{% endfor %}
+</ul>
+{% elif peut_decider %}
+<form method="post" action="{% url 'decider_reprise' ins.id %}">{% csrf_token %}
+  {{ form.as_p }}<button>Enregistrer la décision</button>
+</form>
+{% else %}
+<p>Aucune décision pédagogique à prendre pour le moment.</p>
+{% endif %}
+
+<h2>Montant des matières retenues</h2>
+{% if tarif is not None %}
+<p>Tarif par matière à reprendre : {{ tarif }} (donnée fictive, à valider).</p>
+{% if decision %}<p><strong>Total : {{ total }}</strong> pour {{ retenues|length }} matière(s).</p>{% endif %}
+{% else %}
+<p>Aucun tarif renseigné pour ce niveau.</p>
+{% endif %}
+
+<h2>Historique</h2>
+<table>
+  <tr><th>Date</th><th>Action</th><th>Auteur</th><th>Motif</th></tr>
+  {% for h in historique %}
+  <tr><td>{{ h.date|date:"d/m/Y H:i" }}</td><td>{{ h.action }}</td><td>{{ h.auteur.username }}</td><td>{{ h.motif }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

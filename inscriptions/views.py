@@ -4,16 +4,22 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
+from academique.models import AnneeAcademique, Dette, Niveau, ReleveNotes
+from academique.views import SITUATIONS
 from admissions.models import Demande
 from comptes.permissions import a_role, role_requis
 from historique.models import JournalAction
 from paiements.models import Justificatif
 
-from .forms import FinalisationForm
-from .models import Inscription
+from .forms import DecisionRepriseForm, FinalisationForm
+from .models import DecisionReprise, Inscription, MatiereReprise
+from .services import tarif_reprise
 
 ROLES_SCOLARITE = ("Scolarité", "Administrateur")
+ROLES_REINSCRIPTION = ("Scolarité", "Responsable pédagogique", "Administrateur")
+ROLES_DECISION_REPRISE = ("Responsable pédagogique", "Administrateur")
 
 
 def justificatif_accepte(etudiant):
@@ -29,6 +35,8 @@ def inscription_existante(demande):
         etudiant=demande.etudiant, annee=demande.annee, type=Inscription.Type.NOUVELLE
     ).first()
 
+
+# ---------- Nouvelle inscription ----------
 
 @role_requis(*ROLES_SCOLARITE)
 def a_finaliser(request):
@@ -108,3 +116,128 @@ def fiche_inscription(request, pk):
         "ins": ins,
         "justificatif": justificatif_accepte(ins.etudiant),
     })
+
+
+# ---------- Réinscription ----------
+
+@role_requis(*ROLES_SCOLARITE)
+@require_POST
+def ouvrir_reinscription(request, releve_pk):
+    releve = get_object_or_404(ReleveNotes.objects.select_related("etudiant", "niveau"), pk=releve_pk)
+    annee = AnneeAcademique.objects.filter(active=True).first()
+    if annee is None:
+        messages.error(request, "Aucune année académique active.")
+        return redirect("detail_releve", pk=releve.pk)
+
+    if releve.situation == "decision_institutionnelle":
+        JournalAction.objects.create(
+            auteur=request.user,
+            action="Dossier orienté vers une décision institutionnelle",
+            objet=f"Relevé {releve.id}",
+            motif=f"{releve.credits_obtenus} crédits obtenus, sous le seuil de 40",
+        )
+        messages.warning(
+            request,
+            "Moins de 40 crédits : aucune réinscription créée. "
+            "Le dossier est orienté vers une décision institutionnelle.",
+        )
+        return redirect("detail_releve", pk=releve.pk)
+
+    existante = Inscription.objects.filter(
+        etudiant=releve.etudiant, annee=annee, type=Inscription.Type.REINSCRIPTION
+    ).first()
+    if existante:
+        return redirect("detail_reinscription", pk=existante.pk)
+
+    # Hypothèse provisoire : réinscription dans le niveau suivant de la filière.
+    suivant = Niveau.objects.filter(
+        filiere=releve.niveau.filiere, id__gt=releve.niveau.id
+    ).order_by("id").first()
+    with transaction.atomic():
+        ins = Inscription.objects.create(
+            etudiant=releve.etudiant,
+            annee=annee,
+            niveau=suivant or releve.niveau,
+            type=Inscription.Type.REINSCRIPTION,
+            statut=Inscription.Statut.EN_COURS,
+        )
+        JournalAction.objects.create(
+            auteur=request.user,
+            action="Réinscription engagée",
+            objet=f"Réinscription {ins.id}",
+            motif=f"{releve.credits_obtenus} crédits obtenus",
+        )
+    messages.success(request, "Réinscription engagée.")
+    return redirect("detail_reinscription", pk=ins.pk)
+
+
+@role_requis(*ROLES_REINSCRIPTION)
+def detail_reinscription(request, pk):
+    ins = get_object_or_404(
+        Inscription.objects.select_related("etudiant", "annee", "niveau"),
+        pk=pk, type=Inscription.Type.REINSCRIPTION,
+    )
+    releve = ReleveNotes.objects.filter(etudiant=ins.etudiant).order_by("-date_saisie").first()
+    dettes = (
+        Dette.objects.filter(etudiant=ins.etudiant, annee_origine=releve.annee).select_related("matiere")
+        if releve else Dette.objects.none()
+    )
+    decision = ins.decisions_reprise.select_related("responsable").first()
+    tarif = tarif_reprise(ins.annee, ins.niveau)
+    retenues = dettes.filter(statut=Dette.Statut.RETENUE)
+    total = tarif * retenues.count() if tarif is not None else None
+    peut_decider = (
+        a_role(request.user, *ROLES_DECISION_REPRISE) and decision is None
+        and dettes.filter(statut=Dette.Statut.NON_VALIDEE).exists()
+    )
+    return render(request, "detail_reinscription.html", {
+        "ins": ins,
+        "releve": releve,
+        "message_situation": SITUATIONS[releve.situation] if releve else "",
+        "dettes": dettes,
+        "decision": decision,
+        "retenues": retenues,
+        "tarif": tarif,
+        "total": total,
+        "peut_decider": peut_decider,
+        "form": DecisionRepriseForm(dettes_qs=dettes.filter(statut=Dette.Statut.NON_VALIDEE)),
+        "historique": JournalAction.objects.filter(objet=f"Réinscription {ins.id}").select_related("auteur"),
+    })
+
+
+@role_requis(*ROLES_DECISION_REPRISE)
+@require_POST
+def decider_reprise(request, pk):
+    ins = get_object_or_404(Inscription, pk=pk, type=Inscription.Type.REINSCRIPTION)
+    releve = ReleveNotes.objects.filter(etudiant=ins.etudiant).order_by("-date_saisie").first()
+    if releve is None or ins.decisions_reprise.exists():
+        messages.error(request, "Une décision existe déjà ou aucun relevé n'est disponible.")
+        return redirect("detail_reinscription", pk=pk)
+
+    dettes = Dette.objects.filter(
+        etudiant=ins.etudiant, annee_origine=releve.annee, statut=Dette.Statut.NON_VALIDEE
+    )
+    form = DecisionRepriseForm(request.POST, dettes_qs=dettes)
+    if not form.is_valid():
+        messages.error(request, "Décision refusée : la justification est obligatoire.")
+        return redirect("detail_reinscription", pk=pk)
+
+    ids = {d.id for d in form.cleaned_data["dettes"]}
+    motif = form.cleaned_data["motif"].strip()
+    with transaction.atomic():
+        decision = DecisionReprise.objects.create(inscription=ins, responsable=request.user, motif=motif)
+        for d in dettes:
+            if d.id in ids:
+                d.statut = Dette.Statut.RETENUE
+                MatiereReprise.objects.create(decision=decision, dette=d)
+            else:
+                d.statut = Dette.Statut.NON_RETENUE
+            d.save()
+        JournalAction.objects.create(
+            auteur=request.user,
+            action="Décision pédagogique de reprise",
+            objet=f"Réinscription {ins.id}",
+            motif=f"{len(ids)} matière(s) retenue(s) : {motif}",
+        )
+    messages.success(request, "Décision pédagogique enregistrée.")
+    return redirect("detail_reinscription", pk=pk)

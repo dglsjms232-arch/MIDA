@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, render
 
-from comptes.permissions import role_requis
+from comptes.permissions import a_role, role_requis
+from inscriptions.models import Inscription
 
 from .models import Dette, ReleveNotes
 
@@ -35,6 +36,9 @@ def detail_releve(request, pk):
     releve = get_object_or_404(
         ReleveNotes.objects.select_related("etudiant", "annee", "niveau"), pk=pk
     )
+    inscription = Inscription.objects.filter(
+        etudiant=releve.etudiant, type=Inscription.Type.REINSCRIPTION, annee__active=True
+    ).first()
     return render(request, "detail_releve.html", {
         "releve": releve,
         "lignes": releve.lignes.select_related("matiere").order_by("matiere__code"),
@@ -42,4 +46,6 @@ def detail_releve(request, pk):
             etudiant=releve.etudiant, annee_origine=releve.annee
         ).select_related("matiere"),
         "message_situation": SITUATIONS[releve.situation],
+        "inscription": inscription,
+        "peut_ouvrir": a_role(request.user, "Scolarité", "Administrateur"),
     })

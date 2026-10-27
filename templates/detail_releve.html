@@ -1,27 +1,7 @@
-{% extends "base.html" %}
-{% block contenu %}
-<p><a href="{% url 'liste_releves' %}">&larr; Retour à la liste</a></p>
-<h1>Relevé : {{ releve.etudiant }}</h1>
-<p>Matricule : {{ releve.etudiant.matricule }} | Année : {{ releve.annee }} | Niveau : {{ releve.niveau }}</p>
-<p><strong>Crédits obtenus : {{ releve.credits_obtenus }} / 60</strong></p>
-<div class="msg">{{ message_situation }}</div>
-
-<h2>Résultats par matière</h2>
-<table>
-  <tr><th>Code</th><th>Matière</th><th>Crédits</th><th>Note</th><th>Résultat</th></tr>
-  {% for l in lignes %}
-  <tr>
-    <td>{{ l.matiere.code }}</td><td>{{ l.matiere.intitule }}</td><td>{{ l.matiere.credits }}</td>
-    <td>{{ l.note }}</td><td>{% if l.validee %}Validée{% else %}Non validée{% endif %}</td>
-  </tr>
-  {% endfor %}
-</table>
-
-<h2>Dettes académiques</h2>
-<table>
-  <tr><th>Matière</th><th>Statut</th></tr>
-  {% for d in dettes %}
-  <tr><td>{{ d.matiere }}</td><td>{{ d.get_statut_display }}</td></tr>
-  {% empty %}<tr><td colspan="2">Aucune dette issue de cette année.</td></tr>{% endfor %}
-</table>
-{% endblock %}
+{% if inscription %}
+<p><a href="{% url 'detail_reinscription' inscription.id %}">Ouvrir la réinscription de cet étudiant</a></p>
+{% elif peut_ouvrir %}
+<form method="post" action="{% url 'ouvrir_reinscription' releve.id %}">{% csrf_token %}
+  <button>Engager la réinscription</button>
+</form>
+{% endif %}
