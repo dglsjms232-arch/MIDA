@@ -8,5 +8,6 @@ urlpatterns = [
     path("deconnexion/", auth_views.LogoutView.as_view(), name="deconnexion"),
     path("paiements/", include("paiements.urls")),
     path("inscriptions/", include("inscriptions.urls")),
+    path("academique/", include("academique.urls")),
     path("", include("admissions.urls")),
 ]

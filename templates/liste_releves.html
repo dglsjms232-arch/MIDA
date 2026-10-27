@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Relevés de notes</h1>
+<table>
+  <tr><th>Étudiant</th><th>Matricule</th><th>Année</th><th>Niveau</th><th>Crédits</th><th></th></tr>
+  {% for r in releves %}
+  <tr>
+    <td>{{ r.etudiant }}</td><td>{{ r.etudiant.matricule }}</td><td>{{ r.annee }}</td>
+    <td>{{ r.niveau }}</td><td>{{ r.credits_obtenus }} / 60</td>
+    <td><a href="{% url 'detail_releve' r.id %}">Ouvrir</a></td>
+  </tr>
+  {% empty %}<tr><td colspan="6">Aucun relevé.</td></tr>{% endfor %}
+</table>
+{% endblock %}
