@@ -11,7 +11,7 @@ from admissions.models import Demande
 from comptes.permissions import a_role, role_requis
 from historique.models import JournalAction
 from inscriptions.models import Inscription
-
+from inscriptions.services import situation_reprise
 from .forms import ControleForm, JustificatifForm
 from .models import Justificatif
 
@@ -39,20 +39,45 @@ def mes_justificatifs(request):
     ).exists()
     peut_deposer = admise and not bloque
 
-    form = JustificatifForm(request.POST or None, request.FILES or None)
+    reprise = None
+    peut_deposer_reprise = False
+    if etudiant is not None:
+        ins_r = Inscription.objects.filter(
+            etudiant=etudiant, type=Inscription.Type.REINSCRIPTION,
+            statut=Inscription.Statut.EN_COURS,
+        ).first()
+        if ins_r:
+            sit = situation_reprise(ins_r)
+            if sit["retenues"].exists():
+                reprise = sit
+                en_attente = sit["justificatifs"].filter(statut=Justificatif.Statut.EN_ATTENTE).exists()
+                peut_deposer_reprise = bool(sit["reste"]) and not en_attente
+
+    form = JustificatifForm()
+    form_reprise = JustificatifForm()
     if request.method == "POST":
-        if not peut_deposer:
-            raise PermissionDenied
-        if form.is_valid():
+        if request.POST.get("objet") == "matiere_reprise":
+            if not peut_deposer_reprise:
+                raise PermissionDenied
+            form_reprise = JustificatifForm(request.POST, request.FILES)
+            cible = form_reprise
+            objet = Justificatif.Objet.MATIERE_REPRISE
+            action = "Dépôt du justificatif de paiement des matières à reprendre"
+        else:
+            if not peut_deposer:
+                raise PermissionDenied
+            form = JustificatifForm(request.POST, request.FILES)
+            cible = form
+            objet = Justificatif.Objet.PREMIERE_TRANCHE
+            action = "Dépôt du justificatif de première tranche"
+        if cible.is_valid():
             with transaction.atomic():
-                j = form.save(commit=False)
+                j = cible.save(commit=False)
                 j.etudiant = etudiant
-                j.objet = Justificatif.Objet.PREMIERE_TRANCHE
+                j.objet = objet
                 j.save()
                 JournalAction.objects.create(
-                    auteur=request.user,
-                    action="Dépôt du justificatif de première tranche",
-                    objet=f"Justificatif {j.id}",
+                    auteur=request.user, action=action, objet=f"Justificatif {j.id}"
                 )
             messages.success(request, "Justificatif envoyé : il sera contrôlé par un agent habilité.")
             return redirect("mes_justificatifs")
@@ -64,6 +89,9 @@ def mes_justificatifs(request):
         "bloque": bloque,
         "peut_deposer": peut_deposer,
         "form": form,
+        "reprise": reprise,
+        "peut_deposer_reprise": peut_deposer_reprise,
+        "form_reprise": form_reprise,
     })
 
 

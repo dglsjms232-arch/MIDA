@@ -9,4 +9,6 @@ urlpatterns = [
     path("reinscription/ouvrir/<int:releve_pk>/", views.ouvrir_reinscription, name="ouvrir_reinscription"),
     path("reinscription/<int:pk>/", views.detail_reinscription, name="detail_reinscription"),
     path("reinscription/<int:pk>/decision/", views.decider_reprise, name="decider_reprise"),
+    path("reinscription/<int:pk>/finaliser/", views.finaliser_reinscription, name="finaliser_reinscription"),
+
 ]

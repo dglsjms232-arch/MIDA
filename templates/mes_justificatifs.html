@@ -16,17 +16,36 @@
 
 {% if peut_deposer %}
 <h2>Déposer le justificatif de première tranche</h2>
-<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button>Envoyer</button></form>
-{% elif not admise %}
-<p>Le dépôt du justificatif est ouvert une fois votre admission prononcée.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  <input type="hidden" name="objet" value="premiere_tranche">
+  {{ form.as_p }}<button>Envoyer</button>
+</form>
+{% elif not admise and not reprise %}
+<p>Le dépôt du justificatif de première tranche est ouvert une fois votre admission prononcée.</p>
 {% elif bloque %}
-<p>Un justificatif est en cours de contrôle ou déjà accepté.</p>
+<p>Un justificatif de première tranche est en cours de contrôle ou déjà accepté.</p>
+{% endif %}
+
+{% if reprise %}
+<h2>Matières à reprendre : paiement</h2>
+<ul>{% for d in reprise.retenues %}<li>{{ d.matiere }}</li>{% endfor %}</ul>
+<p>Montant total : {{ reprise.total }} | Montant déjà validé : {{ reprise.paye }} | <strong>Reste à payer : {{ reprise.reste }}</strong></p>
+{% if peut_deposer_reprise %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  <input type="hidden" name="objet" value="matiere_reprise">
+  {{ form_reprise.as_p }}<button>Envoyer le justificatif</button>
+</form>
+{% elif reprise.reste %}
+<p>Un justificatif est en cours de contrôle.</p>
+{% else %}
+<p>Le paiement des matières retenues est entièrement validé.</p>
+{% endif %}
 {% endif %}
 
 <h2>Mes inscriptions finalisées</h2>
 <ul>
   {% for i in inscriptions %}
-  <li>{{ i.annee }} : {{ i.niveau }} - <a href="{% url 'fiche_inscription' i.id %}">voir la fiche</a></li>
+  <li>{{ i.annee }} : {{ i.niveau }} ({{ i.get_type_display }}) - <a href="{% url 'fiche_inscription' i.id %}">voir la fiche</a></li>
   {% empty %}<li>Aucune inscription finalisée.</li>{% endfor %}
 </ul>
 {% endblock %}

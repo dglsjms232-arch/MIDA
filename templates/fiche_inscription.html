@@ -14,15 +14,20 @@ td:first-child{width:35%;font-weight:bold;background:#f3f3f3}
 </style>
 </head>
 <body>
-<h1>UCAO-UUT : Fiche d'inscription</h1>
+<h1>UCAO-UUT : Fiche de {% if ins.type == 'nouvelle' %}inscription{% else %}réinscription{% endif %}</h1>
 <table>
   <tr><td>Matricule</td><td>{{ ins.etudiant.matricule }}</td></tr>
   <tr><td>Nom et prénom</td><td>{{ ins.etudiant.nom }} {{ ins.etudiant.prenom }}</td></tr>
   <tr><td>Date de naissance</td><td>{{ ins.etudiant.date_naissance|date:"d/m/Y" }}</td></tr>
   <tr><td>Année académique</td><td>{{ ins.annee }}</td></tr>
   <tr><td>Filière et niveau</td><td>{{ ins.niveau }}</td></tr>
-  <tr><td>Type d'inscription</td><td>{{ ins.get_type_display }}</td></tr>
+  <tr><td>Type</td><td>{{ ins.get_type_display }}</td></tr>
+  {% if ins.type == 'nouvelle' %}
   <tr><td>Première tranche</td><td>{% if justificatif %}Justificatif accepté (réf. {{ justificatif.reference_bancaire }}){% else %}Non renseignée{% endif %}</td></tr>
+  {% else %}
+  <tr><td>Matières retenues pour la reprise</td><td>{% for d in sit.retenues %}{{ d.matiere }}{% if not forloop.last %}<br>{% endif %}{% empty %}Aucune{% endfor %}</td></tr>
+  <tr><td>Montant des matières retenues</td><td>{{ sit.total|default:"0" }} (validé : {{ sit.paye }})</td></tr>
+  {% endif %}
   <tr><td>Statut</td><td>{{ ins.get_statut_display }}</td></tr>
   <tr><td>Finalisée par</td><td>{{ ins.finalisee_par.username }} le {{ ins.date_finalisation|date:"d/m/Y H:i" }}</td></tr>
 </table>

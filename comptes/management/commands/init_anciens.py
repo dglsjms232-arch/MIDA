@@ -20,6 +20,7 @@ ANCIENS = [
     ("UCAO-2025-0101", "KOFFI", "Ama", []),
     ("UCAO-2025-0102", "MENSAH", "Yao", ["INF205", "INF206"]),
     ("UCAO-2025-0103", "AGBO", "Kossi", ["INF202", "INF203", "INF204", "INF208", "MAT201"]),
+    ("UCAO-2025-0104", "TOGBE", "Efua", ["INF207", "INF208", "MAT201"]),
 ]
 
 

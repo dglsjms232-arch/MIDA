@@ -15,7 +15,7 @@ from paiements.models import Justificatif
 
 from .forms import DecisionRepriseForm, FinalisationForm
 from .models import DecisionReprise, Inscription, MatiereReprise
-from .services import tarif_reprise
+from .services import blocages_finalisation, dernier_releve, dettes_examinees, situation_reprise
 
 ROLES_SCOLARITE = ("Scolarité", "Administrateur")
 ROLES_REINSCRIPTION = ("Scolarité", "Responsable pédagogique", "Administrateur")
@@ -115,8 +115,8 @@ def fiche_inscription(request, pk):
     return render(request, "fiche_inscription.html", {
         "ins": ins,
         "justificatif": justificatif_accepte(ins.etudiant),
+        "sit": situation_reprise(ins) if ins.type == Inscription.Type.REINSCRIPTION else {},
     })
-
 
 # ---------- Réinscription ----------
 
@@ -177,17 +177,13 @@ def detail_reinscription(request, pk):
         Inscription.objects.select_related("etudiant", "annee", "niveau"),
         pk=pk, type=Inscription.Type.REINSCRIPTION,
     )
-    releve = ReleveNotes.objects.filter(etudiant=ins.etudiant).order_by("-date_saisie").first()
-    dettes = (
-        Dette.objects.filter(etudiant=ins.etudiant, annee_origine=releve.annee).select_related("matiere")
-        if releve else Dette.objects.none()
-    )
-    decision = ins.decisions_reprise.select_related("responsable").first()
-    tarif = tarif_reprise(ins.annee, ins.niveau)
-    retenues = dettes.filter(statut=Dette.Statut.RETENUE)
-    total = tarif * retenues.count() if tarif is not None else None
+    releve = dernier_releve(ins.etudiant)
+    dettes = dettes_examinees(ins)
+    sit = situation_reprise(ins)
+    blocages = blocages_finalisation(dettes, sit)
+    en_cours = ins.statut == Inscription.Statut.EN_COURS
     peut_decider = (
-        a_role(request.user, *ROLES_DECISION_REPRISE) and decision is None
+        a_role(request.user, *ROLES_DECISION_REPRISE) and sit["decision"] is None
         and dettes.filter(statut=Dette.Statut.NON_VALIDEE).exists()
     )
     return render(request, "detail_reinscription.html", {
@@ -195,13 +191,14 @@ def detail_reinscription(request, pk):
         "releve": releve,
         "message_situation": SITUATIONS[releve.situation] if releve else "",
         "dettes": dettes,
-        "decision": decision,
-        "retenues": retenues,
-        "tarif": tarif,
-        "total": total,
+        "sit": sit,
         "peut_decider": peut_decider,
+        "peut_finaliser": a_role(request.user, *ROLES_SCOLARITE) and en_cours,
+        "blocages": blocages,
         "form": DecisionRepriseForm(dettes_qs=dettes.filter(statut=Dette.Statut.NON_VALIDEE)),
-        "historique": JournalAction.objects.filter(objet=f"Réinscription {ins.id}").select_related("auteur"),
+        "historique": JournalAction.objects.filter(
+            objet=f"Réinscription {ins.id}"
+        ).select_related("auteur"),
     })
 
 
@@ -241,3 +238,27 @@ def decider_reprise(request, pk):
         )
     messages.success(request, "Décision pédagogique enregistrée.")
     return redirect("detail_reinscription", pk=pk)
+@role_requis(*ROLES_SCOLARITE)
+@require_POST
+def finaliser_reinscription(request, pk):
+    ins = get_object_or_404(Inscription, pk=pk, type=Inscription.Type.REINSCRIPTION)
+    if ins.statut == Inscription.Statut.FINALISEE:
+        return redirect("fiche_inscription", pk=pk)
+    sit = situation_reprise(ins)
+    raisons = blocages_finalisation(dettes_examinees(ins), sit)
+    if raisons:
+        messages.error(request, "Finalisation impossible : " + " ".join(raisons))
+        return redirect("detail_reinscription", pk=pk)
+    with transaction.atomic():
+        ins.statut = Inscription.Statut.FINALISEE
+        ins.finalisee_par = request.user
+        ins.date_finalisation = timezone.now()
+        ins.save()
+        JournalAction.objects.create(
+            auteur=request.user,
+            action="Réinscription finalisée",
+            objet=f"Réinscription {ins.id}",
+            motif=f"{sit['retenues'].count()} matière(s) retenue(s), montant validé : {sit['paye']}",
+        )
+    messages.success(request, "Réinscription finalisée.")
+    return redirect("fiche_inscription", pk=pk)

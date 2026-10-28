@@ -18,13 +18,11 @@
 </table>
 
 <h2>Décision pédagogique</h2>
-{% if decision %}
-<p>Décision de {{ decision.responsable.username }} le {{ decision.date|date:"d/m/Y H:i" }}.</p>
-<p>Justification : {{ decision.motif }}</p>
+{% if sit.decision %}
+<p>Décision de {{ sit.decision.responsable.username }} le {{ sit.decision.date|date:"d/m/Y H:i" }}.</p>
+<p>Justification : {{ sit.decision.motif }}</p>
 <h3>Matières retenues pour la reprise</h3>
-<ul>
-  {% for d in retenues %}<li>{{ d.matiere }}</li>{% empty %}<li>Aucune matière retenue.</li>{% endfor %}
-</ul>
+<ul>{% for d in sit.retenues %}<li>{{ d.matiere }}</li>{% empty %}<li>Aucune matière retenue.</li>{% endfor %}</ul>
 {% elif peut_decider %}
 <form method="post" action="{% url 'decider_reprise' ins.id %}">{% csrf_token %}
   {{ form.as_p }}<button>Enregistrer la décision</button>
@@ -33,12 +31,43 @@
 <p>Aucune décision pédagogique à prendre pour le moment.</p>
 {% endif %}
 
-<h2>Montant des matières retenues</h2>
-{% if tarif is not None %}
-<p>Tarif par matière à reprendre : {{ tarif }} (donnée fictive, à valider).</p>
-{% if decision %}<p><strong>Total : {{ total }}</strong> pour {{ retenues|length }} matière(s).</p>{% endif %}
+<h2>Situation financière</h2>
+{% if sit.tarif is not None %}
+<p>Tarif par matière à reprendre : {{ sit.tarif }} (donnée fictive, à valider).</p>
+<p>Total : <strong>{{ sit.total }}</strong> | Validé : <strong>{{ sit.paye }}</strong> | Reste : <strong>{{ sit.reste }}</strong></p>
 {% else %}
 <p>Aucun tarif renseigné pour ce niveau.</p>
+{% endif %}
+<table>
+  <tr><th>Justificatif</th><th>Montant</th><th>Date</th><th>Statut</th><th>Motif de refus</th></tr>
+  {% for j in sit.justificatifs %}
+  <tr><td>n°{{ j.id }}</td><td>{{ j.montant_declare }}</td><td>{{ j.date_depot|date:"d/m/Y" }}</td><td>{{ j.get_statut_display }}</td><td>{{ j.motif_refus }}</td></tr>
+  {% empty %}<tr><td colspan="5">Aucun justificatif déposé.</td></tr>{% endfor %}
+</table>
+
+<h2>Matières restant à régulariser</h2>
+{% if sit.retenues %}
+  {% if sit.reste is None or sit.reste > 0 %}
+  <p>Paiement non entièrement validé pour :</p>
+  <ul>{% for d in sit.retenues %}<li>{{ d.matiere }}</li>{% endfor %}</ul>
+  {% else %}
+  <p>Paiement validé pour toutes les matières retenues. Les conditions d'accès aux examens restent à confirmer par l'établissement.</p>
+  {% endif %}
+{% else %}
+<p>Aucune matière retenue.</p>
+{% endif %}
+
+{% if peut_finaliser %}
+<h2>Finalisation</h2>
+{% if blocages %}
+<div class="msg"><strong>Finalisation impossible pour le moment :</strong>
+<ul>{% for b in blocages %}<li>{{ b }}</li>{% endfor %}</ul></div>
+{% endif %}
+<form method="post" action="{% url 'finaliser_reinscription' ins.id %}">{% csrf_token %}
+  <button>Finaliser la réinscription</button>
+</form>
+{% elif ins.statut == 'finalisee' %}
+<p><a href="{% url 'fiche_inscription' ins.id %}">Voir la fiche de réinscription</a></p>
 {% endif %}
 
 <h2>Historique</h2>
