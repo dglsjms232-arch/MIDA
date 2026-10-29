@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block contenu %}
+<p><a href="{% url 'recherche_dossier' %}">&larr; Retour à la recherche</a></p>
+<h1>Dossier : {{ etudiant }}</h1>
+<p>Matricule : {{ etudiant.matricule|default:"non attribué" }}</p>
+
+<h2>Demandes d'admission</h2>
+<table>
+  <tr><th>N°</th><th>Filière</th><th>Date</th><th>Statut</th></tr>
+  {% for d in demandes %}
+  <tr><td>{{ d.id }}</td><td>{{ d.filiere }}</td><td>{{ d.date_creation|date:"d/m/Y" }}</td><td>{{ d.get_statut_display }}</td></tr>
+  {% empty %}<tr><td colspan="4">Aucune demande.</td></tr>{% endfor %}
+</table>
+
+<h2>Inscriptions et réinscriptions</h2>
+<table>
+  <tr><th>Type</th><th>Année</th><th>Niveau</th><th>Statut</th></tr>
+  {% for i in inscriptions %}
+  <tr><td>{{ i.get_type_display }}</td><td>{{ i.annee }}</td><td>{{ i.niveau }}</td><td>{{ i.get_statut_display }}</td></tr>
+  {% empty %}<tr><td colspan="4">Aucune inscription.</td></tr>{% endfor %}
+</table>
+
+<h2>Relevés de notes</h2>
+<table>
+  <tr><th>Année</th><th>Crédits obtenus</th></tr>
+  {% for r in releves %}
+  <tr><td>{{ r.annee }}</td><td>{{ r.credits_obtenus }} / 60</td></tr>
+  {% empty %}<tr><td colspan="2">Aucun relevé.</td></tr>{% endfor %}
+</table>
+
+<h2>Dettes académiques</h2>
+<table>
+  <tr><th>Matière</th><th>Année d'origine</th><th>Statut</th></tr>
+  {% for d in dettes %}
+  <tr><td>{{ d.matiere }}</td><td>{{ d.annee_origine }}</td><td>{{ d.get_statut_display }}</td></tr>
+  {% empty %}<tr><td colspan="3">Aucune dette.</td></tr>{% endfor %}
+</table>
+
+<h2>Justificatifs de paiement</h2>
+<table>
+  <tr><th>N°</th><th>Objet</th><th>Montant</th><th>Date</th><th>Statut</th><th>Motif de refus</th></tr>
+  {% for j in justificatifs %}
+  <tr><td>{{ j.id }}</td><td>{{ j.get_objet_display }}</td><td>{{ j.montant_declare }}</td><td>{{ j.date_depot|date:"d/m/Y" }}</td><td>{{ j.get_statut_display }}</td><td>{{ j.motif_refus }}</td></tr>
+  {% empty %}<tr><td colspan="6">Aucun justificatif.</td></tr>{% endfor %}
+</table>
+
+<h2>Historique des décisions et actions</h2>
+<table>
+  <tr><th>Date</th><th>Action</th><th>Objet</th><th>Auteur</th><th>Motif</th></tr>
+  {% for h in historique %}
+  <tr><td>{{ h.date|date:"d/m/Y H:i" }}</td><td>{{ h.action }}</td><td>{{ h.objet }}</td><td>{{ h.auteur.username }}</td><td>{{ h.motif }}</td></tr>
+  {% empty %}<tr><td colspan="5">Aucune action enregistrée.</td></tr>{% endfor %}
+</table>
+{% endblock %}

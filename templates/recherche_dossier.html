@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Rechercher un dossier étudiant</h1>
+<form method="get">
+  <input name="q" value="{{ q }}" placeholder="Nom, prénom ou matricule">
+  <button>Rechercher</button>
+</form>
+{% if q %}
+<table>
+  <tr><th>Nom</th><th>Prénom</th><th>Matricule</th><th></th></tr>
+  {% for e in etudiants %}
+  <tr><td>{{ e.nom }}</td><td>{{ e.prenom }}</td><td>{{ e.matricule|default:"-" }}</td>
+  <td><a href="{% url 'dossier_etudiant' e.id %}">Ouvrir le dossier</a></td></tr>
+  {% empty %}<tr><td colspan="4">Aucun résultat.</td></tr>{% endfor %}
+</table>
+{% endif %}
+{% endblock %}

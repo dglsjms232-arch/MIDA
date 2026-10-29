@@ -33,6 +33,10 @@ def accueil(request):
         "est_academique": a_role(
             request.user, "Scolarité", "Responsable pédagogique", "Administrateur"
         ),
+        "est_suivi": a_role(
+            request.user, "Admissions", "Scolarité", "Agent paiements",
+            "Responsable pédagogique", "Administrateur",
+        ),
     })
 
 @login_required

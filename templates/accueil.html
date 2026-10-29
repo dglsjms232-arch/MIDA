@@ -9,5 +9,9 @@
   {% if est_paiements %}<li><a href="{% url 'liste_controle' %}">Contrôler les justificatifs de paiement</a></li>{% endif %}
   {% if est_scolarite %}<li><a href="{% url 'a_finaliser' %}">Finaliser les inscriptions</a></li>{% endif %}
   {% if est_academique %}<li><a href="{% url 'liste_releves' %}">Relevés de notes et dettes</a></li>{% endif %}
+  {% if est_suivi %}
+  <li><a href="{% url 'suivi' %}">Tableau de suivi</a></li>
+  <li><a href="{% url 'recherche_dossier' %}">Rechercher un dossier étudiant</a></li>
+  {% endif %}
 </ul>
 {% endblock %}

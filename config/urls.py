@@ -9,5 +9,6 @@ urlpatterns = [
     path("paiements/", include("paiements.urls")),
     path("inscriptions/", include("inscriptions.urls")),
     path("academique/", include("academique.urls")),
+    path("", include("historique.urls")),
     path("", include("admissions.urls")),
 ]
