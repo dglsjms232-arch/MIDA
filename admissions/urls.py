@@ -10,5 +10,5 @@ urlpatterns = [
     path("dossiers/<int:pk>/", views.detail_demande, name="detail_demande"),
     path("dossiers/<int:pk>/decision/", views.decider, name="decider"),
     path("dossiers/<int:pk>/communication/", views.enregistrer_communication, name="enregistrer_communication"),
-    path("pieces/<int:pk>/", views.piece_fichier, name="piece_fichier"),
+    path("dossiers/depot-physique/", views.depot_physique, name="depot_physique"),
 ]

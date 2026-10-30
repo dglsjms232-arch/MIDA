@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block contenu %}
 <h1>Dossiers de demande</h1>
+{% if peut_enregistrer %}<p><a href="{% url 'depot_physique' %}">Enregistrer un dépôt physique</a></p>{% endif %}
 <form method="get">
   <input name="q" value="{{ q }}" placeholder="Nom ou prénom">
   <select name="statut">

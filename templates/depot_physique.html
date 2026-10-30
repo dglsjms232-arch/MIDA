@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block contenu %}
+<p><a href="{% url 'liste_demandes' %}">&larr; Retour à la liste</a></p>
+<h1>Enregistrer un dépôt physique</h1>
+<p>Saisissez l'identité du candidat venu déposer son dossier et joignez les pièces numérisées.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button>Enregistrer le dépôt</button></form>
+{% endblock %}

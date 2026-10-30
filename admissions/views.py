@@ -96,6 +96,7 @@ def liste_demandes(request):
         demandes = demandes.filter(Q(etudiant__nom__icontains=q) | Q(etudiant__prenom__icontains=q))
     return render(request, "liste_demandes.html", {
         "demandes": demandes, "statuts": Demande.Statut.choices, "statut": statut, "q": q,
+        "peut_enregistrer": a_role(request.user, *ROLES_DECISION),
     })
 
 
@@ -172,3 +173,48 @@ def piece_fichier(request, pk):
     if not (proprietaire or a_role(request.user, *ROLES_CONSULTATION)):
         raise PermissionDenied
     return FileResponse(piece.fichier.open("rb"))
+@role_requis(*ROLES_DECISION)
+def depot_physique(request):
+    annee = AnneeAcademique.objects.filter(active=True).first()
+    if annee is None:
+        messages.error(request, "Aucune année académique active.")
+        return redirect("accueil")
+
+    form = DemandeForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        with transaction.atomic():
+            # Évite de créer un doublon si le candidat est déjà connu.
+            etudiant = Etudiant.objects.filter(
+                nom__iexact=d["nom"], prenom__iexact=d["prenom"],
+                date_naissance=d["date_naissance"],
+            ).first()
+            if etudiant is None:
+                etudiant = Etudiant(
+                    nom=d["nom"], prenom=d["prenom"], date_naissance=d["date_naissance"]
+                )
+            etudiant.telephone = d["telephone"]
+            etudiant.email = d["email"]
+            etudiant.save()
+            demande = Demande.objects.create(
+                etudiant=etudiant, annee=annee, filiere=d["filiere"],
+                mode_depot=Demande.Mode.PHYSIQUE, statut=Demande.Statut.SOUMISE,
+                enregistree_par=request.user,
+            )
+            incomplete = False
+            for tp in TypePiece.objects.all():
+                fichier = d.get(f"piece_{tp.id}")
+                if fichier:
+                    PieceJointe.objects.create(demande=demande, type_piece=tp, fichier=fichier)
+                elif tp.obligatoire:
+                    incomplete = True
+            if incomplete:
+                demande.statut = Demande.Statut.INCOMPLETE
+                demande.save()
+            JournalAction.objects.create(
+                auteur=request.user, action="Enregistrement d'un dépôt physique",
+                objet=f"Demande {demande.id}",
+            )
+        messages.success(request, f"Dépôt physique enregistré : demande n°{demande.id}, {demande.get_statut_display()}.")
+        return redirect("detail_demande", pk=demande.pk)
+    return render(request, "depot_physique.html", {"form": form})
