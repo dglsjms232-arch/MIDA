@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block contenu %}
+<p><a href="{% url 'liste_releves' %}">&larr; Retour aux relevés</a></p>
+<h1>Importer un relevé de notes</h1>
+{% if peut_importer %}<p><a href="{% url 'import_releve' %}">Importer un relevé de notes</a></p>{% endif %}
+<p>Les résultats sont déjà validés : l'application ne calcule aucune note. Les crédits obtenus sont la somme des crédits des matières validées, et chaque matière non validée devient une dette.</p>
+<p>Format du fichier CSV (séparateur ; ou ,) :</p>
+<pre>code;note;validee
+INF201;13,5;oui
+INF204;8;non</pre>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button>Importer</button></form>
+{% endblock %}

@@ -1,11 +1,16 @@
-from django.shortcuts import get_object_or_404, render
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404, redirect, render
 
 from comptes.permissions import a_role, role_requis
 from inscriptions.models import Inscription
 
+from . import services
+from .forms import ImportReleveForm
 from .models import Dette, ReleveNotes
 
 ROLES_ACADEMIQUE = ("Scolarité", "Responsable pédagogique", "Administrateur")
+ROLES_IMPORT = ("Scolarité", "Administrateur")
 
 SITUATIONS = {
     "complet": (
@@ -28,7 +33,10 @@ def liste_releves(request):
     releves = ReleveNotes.objects.select_related("etudiant", "annee", "niveau").order_by(
         "etudiant__nom"
     )
-    return render(request, "liste_releves.html", {"releves": releves})
+    return render(request, "liste_releves.html", {
+        "releves": releves,
+        "peut_importer": a_role(request.user, *ROLES_IMPORT),
+    })
 
 
 @role_requis(*ROLES_ACADEMIQUE)
@@ -49,3 +57,21 @@ def detail_releve(request, pk):
         "inscription": inscription,
         "peut_ouvrir": a_role(request.user, "Scolarité", "Administrateur"),
     })
+
+
+@role_requis(*ROLES_IMPORT)
+def import_releve(request):
+    form = ImportReleveForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        try:
+            releve = services.importer_releve(
+                d["etudiant"], d["annee"], d["niveau"], d["fichier"], request.user
+            )
+        except ValidationError as e:
+            for m in e.messages:
+                messages.error(request, m)
+        else:
+            messages.success(request, f"Relevé importé : {releve.credits_obtenus} crédits obtenus.")
+            return redirect("detail_releve", pk=releve.pk)
+    return render(request, "importer_releve.html", {"form": form})

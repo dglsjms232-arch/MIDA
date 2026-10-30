@@ -1,3 +1,4 @@
+import os
 """
 Django settings for config project.
 
@@ -20,12 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-+79#bgk0rz)nxlmx_(kqsn+x!3ag=d1vhvblj(1eq9)6z&%e&b'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+SECRET_KEY = os.environ.get("MIDA_SECRET_KEY", "cle-de-demonstration-sans-valeur-reelle")
+DEBUG = os.environ.get("MIDA_DEBUG", "1") == "1"
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 
 # Application definition
